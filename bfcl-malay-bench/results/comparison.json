@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "benchmark": "bfcl-ms-malay-focus",
+  "dataset": "khursani8/bfcl-ms",
+  "dataset_revision": "main",
+  "run_dates": ["2026-08-18", "2026-08-19"],
+  "categories": ["simple", "multiple", "irrelevance", "chatable"],
+  "total_cases": 1040,
+  "scoring": "pixel-bench-local",
+  "results": [
+    {
+      "rank": 1,
+      "model": "ILMU Mini v3.3",
+      "model_id": "ilmu-mini-v3.3",
+      "adapter_path": "openai-compatible-direct",
+      "passed": 796,
+      "scored": 1040,
+      "accuracy": 0.7653846153846153,
+      "errors": 0,
+      "by_category": {
+        "simple": {"passed": 267, "scored": 400, "accuracy": 0.6675},
+        "multiple": {"passed": 124, "scored": 200, "accuracy": 0.62},
+        "irrelevance": {"passed": 205, "scored": 240, "accuracy": 0.8541666666666666},
+        "chatable": {"passed": 200, "scored": 200, "accuracy": 1.0}
+      }
+    },
+    {
+      "rank": 2,
+      "model": "Nemotron 3.5 Lightning",
+      "model_id": "nemotron-3.5-lightning",
+      "adapter_path": "pixel-harness-command",
+      "passed": 784,
+      "scored": 1040,
+      "accuracy": 0.7538461538461538,
+      "errors": 0,
+      "by_category": {
+        "simple": {"passed": 265, "scored": 400, "accuracy": 0.6625},
+        "multiple": {"passed": 130, "scored": 200, "accuracy": 0.65},
+        "irrelevance": {"passed": 190, "scored": 240, "accuracy": 0.7916666666666666},
+        "chatable": {"passed": 199, "scored": 200, "accuracy": 0.995}
+      }
+    },
+    {
+      "rank": 3,
+      "model": "Muse Glimmer 30B",
+      "model_id": "muse-glimmer-30b",
+      "adapter_path": "pixel-harness-command",
+      "passed": 711,
+      "scored": 1040,
+      "accuracy": 0.6836538461538462,
+      "errors": 0,
+      "by_category": {
+        "simple": {"passed": 219, "scored": 400, "accuracy": 0.5475},
+        "multiple": {"passed": 122, "scored": 200, "accuracy": 0.61},
+        "irrelevance": {"passed": 171, "scored": 240, "accuracy": 0.7125},
+        "chatable": {"passed": 199, "scored": 200, "accuracy": 0.995}
+      }
+    },
+    {
+      "rank": 4,
+      "model": "Qwen 3.8 27B",
+      "model_id": "qwen3.8-27b",
+      "adapter_path": "pixel-harness-command",
+      "passed": 627,
+      "scored": 1040,
+      "accuracy": 0.6028846153846154,
+      "errors": 0,
+      "by_category": {
+        "simple": {"passed": 230, "scored": 400, "accuracy": 0.575},
+        "multiple": {"passed": 121, "scored": 200, "accuracy": 0.605},
+        "irrelevance": {"passed": 161, "scored": 240, "accuracy": 0.6708333333333333},
+        "chatable": {"passed": 115, "scored": 200, "accuracy": 0.575}
+      }
+    }
+  ]
+}

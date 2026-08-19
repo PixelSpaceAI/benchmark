@@ -1,0 +1,28 @@
+name: BFCL Malay Bench
+
+on:
+  push:
+    paths:
+      - "bfcl-malay-bench/**"
+      - ".github/workflows/bfcl-malay-bench.yml"
+  pull_request:
+    paths:
+      - "bfcl-malay-bench/**"
+      - ".github/workflows/bfcl-malay-bench.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install benchmark
+        run: python -m pip install -e ./bfcl-malay-bench
+      - name: Run tests
+        working-directory: bfcl-malay-bench
+        run: python -m unittest discover -s tests -v
