@@ -3,6 +3,9 @@
 Public evaluation harnesses and reproducible result summaries from
 [PixelSpaceAI](https://github.com/PixelSpaceAI).
 
+Explore the results on the
+[public benchmark dashboard](https://pixelspaceai.github.io/benchmark/).
+
 ## Benchmarks
 
 - [Malay BFCL v3 tool-calling benchmark](bfcl-malay-bench/) — evaluate an
