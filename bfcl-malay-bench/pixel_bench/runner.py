@@ -25,6 +25,10 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
             try:
                 rows.append(json.loads(line))
             except json.JSONDecodeError as error:
+                if not line.endswith("\n"):
+                    # The append was interrupted before the row was durable. Keep
+                    # the valid prefix so resume can retry the incomplete case.
+                    break
                 raise ValueError(f"invalid result JSONL at {path}:{line_number}: {error}") from error
     return rows
 

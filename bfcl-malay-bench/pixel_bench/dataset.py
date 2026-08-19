@@ -10,7 +10,7 @@ from .models import Case
 
 
 DATASET_ID = "khursani8/bfcl-ms"
-REVISION = "main"
+REVISION = "8b610947fdbf33d75b3d0109419f36f1177d8f0a"
 BASE_URL = f"https://huggingface.co/datasets/{DATASET_ID}/resolve/{REVISION}/BFCL_V3"
 
 ALL_CATEGORIES = (
@@ -72,11 +72,15 @@ def validate_categories(categories: Iterable[str]) -> list[str]:
     return values
 
 
-def _download(url: str, destination: Path) -> None:
+def _download(url: str, destination: Path, *, timeout: float = 120) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "pixel-bench/0.1"})
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             content = response.read()
+    except TimeoutError as error:
+        raise RuntimeError(
+            f"timed out downloading {url} after {timeout:g}s"
+        ) from error
     except urllib.error.URLError as error:
         raise RuntimeError(f"failed to download {url}: {error}") from error
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -122,8 +126,11 @@ def _load_answers(
                 row = json.loads(line)
             except json.JSONDecodeError as error:
                 raise ValueError(f"invalid JSONL in {path}:{line_number}: {error}") from error
-            if selected_ids is None or row["id"] in selected_ids:
-                answers[row["id"]] = row["ground_truth"]
+            row_id = row.get("id")
+            if selected_ids is None or row_id in selected_ids:
+                if row_id is None or "ground_truth" not in row:
+                    continue
+                answers[row_id] = row["ground_truth"]
     return answers
 
 
@@ -169,9 +176,21 @@ def load_cases(
             entry.get("id") or f"{category}_{index}"
             for index, entry in enumerate(selected_entries)
         }
-        answers = _load_answers(
-            root / "possible_answer" / path.name, selected_ids=selected_ids
-        )
+        answer_path = root / "possible_answer" / path.name
+        if category in ANSWER_CATEGORIES and not answer_path.exists():
+            raise FileNotFoundError(
+                f"missing ground-truth file {answer_path}; "
+                f"run `pixel-bench sync --categories {category}`"
+            )
+        answers = _load_answers(answer_path, selected_ids=selected_ids)
+        if category in ANSWER_CATEGORIES:
+            missing_answer_ids = sorted(selected_ids.difference(answers))
+            if missing_answer_ids:
+                formatted_ids = ", ".join(missing_answer_ids)
+                raise ValueError(
+                    f"missing ground truth in {answer_path} for selected case IDs: "
+                    f"{formatted_ids}"
+                )
         for index, entry in enumerate(selected_entries):
             case_id = entry.get("id") or f"{category}_{index}"
             function_value = entry.get("function", [])

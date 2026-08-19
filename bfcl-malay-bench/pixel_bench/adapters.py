@@ -157,6 +157,11 @@ class OpenAIAdapter:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 payload = json.load(response)
+        except TimeoutError as error:
+            raise RuntimeError(
+                f"endpoint request to {self.endpoint} timed out after "
+                f"{self.timeout:g}s for {case.id}"
+            ) from error
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")
             raise RuntimeError(

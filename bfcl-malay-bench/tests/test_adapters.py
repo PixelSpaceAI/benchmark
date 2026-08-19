@@ -3,6 +3,7 @@ import sys
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from unittest.mock import patch
 
 from pixel_bench.adapters import CommandAdapter, OpenAIAdapter, normalize_json_schema
 from pixel_bench.models import Case
@@ -109,6 +110,23 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class OpenAIAdapterTests(unittest.TestCase):
+    def test_wraps_timeout_with_endpoint_and_configured_timeout(self):
+        adapter = OpenAIAdapter(
+            base_url="https://api.example.test/v1",
+            model="pixelspace-test",
+            timeout=7,
+        )
+
+        with patch(
+            "pixel_bench.adapters.urllib.request.urlopen",
+            side_effect=TimeoutError("timed out"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"https://api\.example\.test/v1/chat/completions.*7s",
+            ):
+                adapter.invoke(make_case())
+
     def test_calls_chat_completions_and_normalizes_bfcl_schema(self):
         server = HTTPServer(("127.0.0.1", 0), _Handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

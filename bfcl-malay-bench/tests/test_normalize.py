@@ -44,6 +44,14 @@ class NormalizeResponseTests(unittest.TestCase):
         self.assertEqual(response.content, "done")
         self.assertEqual(response.tool_calls[0]["name"], "weather.get")
 
+    def test_rejects_empty_openai_choices(self):
+        with self.assertRaisesRegex(ValueError, "non-empty list"):
+            normalize_response({"choices": []})
+
+    def test_rejects_openai_choice_without_message_object(self):
+        with self.assertRaisesRegex(ValueError, r"choices\[0\]\.message"):
+            normalize_response({"choices": [{"message": "not-an-object"}]})
+
     def test_normalizes_anthropic_tool_use_blocks(self):
         response = normalize_response(
             {

@@ -138,6 +138,61 @@ class RunnerTests(unittest.TestCase):
             [("simple", "simple_0")],
         )
 
+    def test_resume_ignores_unterminated_malformed_final_fragment(self):
+        completed = {
+            "id": "simple_0",
+            "category": "simple",
+            "status": "scored",
+            "passed": True,
+        }
+        adapter = FixedAdapter()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "responses.jsonl"
+            path.write_text(
+                json.dumps(completed) + '\n{"id":"simple_1"',
+                encoding="utf-8",
+            )
+            summary = run_cases(
+                [make_case(), make_case("simple_1")],
+                adapter,
+                path,
+                resume=True,
+            )
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+
+        self.assertEqual(adapter.calls, 1)
+        self.assertEqual(summary["total"], 2)
+        self.assertEqual([row["id"] for row in rows], ["simple_0", "simple_1"])
+
+    def test_read_results_rejects_malformed_middle_row(self):
+        first = {"id": "simple_0", "category": "simple", "status": "scored"}
+        last = {"id": "simple_1", "category": "simple", "status": "scored"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "responses.jsonl"
+            path.write_text(
+                json.dumps(first) + "\n{malformed}\n" + json.dumps(last) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, r"responses\.jsonl:2"):
+                read_results(path)
+
+    def test_read_results_rejects_newline_terminated_malformed_final_row(self):
+        completed = {
+            "id": "simple_0",
+            "category": "simple",
+            "status": "scored",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "responses.jsonl"
+            path.write_text(
+                json.dumps(completed) + "\n{malformed}\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, r"responses\.jsonl:2"):
+                read_results(path)
+
     def test_read_results_uses_latest_row_for_each_case(self):
         old = {"id": "simple_0", "category": "simple", "status": "error"}
         latest = {

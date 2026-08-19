@@ -28,7 +28,8 @@ perfect conversational score.
 
 ## Protocol
 
-- Dataset: `khursani8/bfcl-ms`, revision `main` at execution time.
+- Dataset: `khursani8/bfcl-ms`, revision
+  `8b610947fdbf33d75b3d0109419f36f1177d8f0a` (last modified 17 August 2026).
 - Date: 18–19 August 2026.
 - Focused categories: `simple`, `multiple`, `irrelevance`, `chatable`.
 - Temperature: 0 for ILMU, Nemotron, and Muse; Qwen used its deployment's
@@ -79,8 +80,9 @@ returned no visible text.
 ## Reproducibility and limitations
 
 - This is not an official BFCL leaderboard result.
-- The dataset revision was recorded as mutable `main`; published result values
-  are snapshots from the stated execution dates.
+- The dataset is pinned to immutable revision
+  `8b610947fdbf33d75b3d0109419f36f1177d8f0a`; published result values are
+  snapshots from the stated execution dates.
 - The four models were not all served by identical infrastructure or prompts.
 - Temperature zero does not guarantee provider-level determinism.
 - The focused suite intentionally excludes parallel orchestration, live/API,

@@ -40,8 +40,10 @@ def normalize_response(payload: Any) -> HarnessResponse:
         raise ValueError("adapter response must be a JSON object")
 
     message = payload
-    choices = payload.get("choices")
-    if isinstance(choices, list) and choices:
+    if "choices" in payload:
+        choices = payload["choices"]
+        if not isinstance(choices, list) or not choices:
+            raise ValueError("OpenAI response choices must be a non-empty list")
         choice = choices[0]
         if not isinstance(choice, dict) or not isinstance(choice.get("message"), dict):
             raise ValueError("OpenAI response is missing choices[0].message")

@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 import unittest
 
+from pixel_bench.dataset import REVISION
+
 
 class PublishedResultsTests(unittest.TestCase):
     @classmethod
@@ -31,6 +33,10 @@ class PublishedResultsTests(unittest.TestCase):
                 self.assertAlmostEqual(
                     category["accuracy"], category["passed"] / category["scored"]
                 )
+
+    def test_results_name_the_immutable_dataset_revision(self):
+        self.assertEqual(self.comparison["dataset_revision"], REVISION)
+        self.assertEqual(self.comparison["dataset_last_modified"], "2026-08-17")
 
 
 if __name__ == "__main__":

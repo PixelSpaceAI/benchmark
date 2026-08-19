@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from pixel_bench.cli import _run_config, _validate_resume_config
+from pixel_bench.dataset import REVISION
 
 
 def make_args(**overrides):
@@ -25,6 +26,15 @@ def make_args(**overrides):
 
 
 class CliResumeTests(unittest.TestCase):
+    def test_run_identity_includes_immutable_dataset_revision(self):
+        config = _run_config(make_args(), ["simple"])
+
+        self.assertEqual(config["dataset_revision"], REVISION)
+        self.assertEqual(
+            config["dataset_revision"],
+            "8b610947fdbf33d75b3d0109419f36f1177d8f0a",
+        )
+
     def test_resume_rejects_incompatible_run_config(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

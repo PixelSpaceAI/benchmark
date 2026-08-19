@@ -7,6 +7,9 @@ dataset, sends each prompt and tool schema to an OpenAI-compatible endpoint or
 command-based harness, stores resumable per-case results, and reports accuracy
 by category.
 
+Dataset downloads and run identities are pinned to immutable revision
+[`8b610947fdbf33d75b3d0109419f36f1177d8f0a`](https://huggingface.co/datasets/khursani8/bfcl-ms/tree/8b610947fdbf33d75b3d0109419f36f1177d8f0a).
+
 The runner has no runtime dependency beyond Python 3.10+.
 
 ## Published focused results
@@ -160,6 +163,6 @@ python -m unittest discover -s tests -v
 ## Dataset attribution
 
 The benchmark data is the Apache-2.0-licensed Malay adaptation of BFCL v3.
-Dataset files are downloaded into the ignored `data/` directory and are not
-vendored here. The runner code in this repository is licensed under
-Apache-2.0.
+Dataset files from the pinned revision are downloaded into the ignored `data/`
+directory and are not vendored here. The runner code in this repository is
+licensed under Apache-2.0.
