@@ -27,7 +27,11 @@ to Malay: user prompts, function descriptions, and parameter descriptions.
 
 See [RESULTS.md](RESULTS.md) for methodology, failure analysis, latency, and
 comparison caveats. Machine-readable values are in
-[`results/comparison.json`](results/comparison.json).
+[`results/comparison.json`](results/comparison.json). Browse all 1,040 prompts
+and all four models' verbatim answers on the
+[public dashboard](https://pixelspaceai.github.io/benchmark/#answer-browser),
+or download the sanitized category JSON files from
+[`results/answers/manifest.json`](results/answers/manifest.json).
 
 ## Install
 

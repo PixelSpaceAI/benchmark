@@ -1,6 +1,8 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
+import shutil
 import tempfile
 import unittest
 
@@ -38,11 +40,18 @@ class SiteBuildTests(unittest.TestCase):
                 (output / "data" / "comparison.json").read_text(encoding="utf-8")
             )
             self.assertEqual(published_results, canonical_results)
+            answer_manifest = json.loads(
+                (output / "data" / "answers" / "manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(answer_manifest["total_cases"], canonical_results["total_cases"])
+            for category in canonical_results["categories"]:
+                self.assertTrue((output / "data" / "answers" / f"{category}.json").is_file())
 
             page = (output / "index.html").read_text(encoding="utf-8")
             self.assertIn('id="overall-chart"', page)
             self.assertIn('id="category-controls"', page)
             self.assertIn('id="results-table-body"', page)
+            self.assertIn('id="answer-browser"', page)
 
     def test_build_replaces_stale_output(self):
         build = load_build_module()
@@ -131,6 +140,47 @@ class SiteBuildTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "does not match its counts"):
             build._validate_results(canonical_results)
+
+    def test_answer_validation_rejects_unexpected_published_fields(self):
+        build = load_build_module()
+        comparison = json.loads(
+            (REPOSITORY_ROOT / build.RESULTS_PATH).read_text(encoding="utf-8")
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            answer_root = repository_root / build.ANSWERS_PATH
+            shutil.copytree(REPOSITORY_ROOT / build.ANSWERS_PATH, answer_root)
+            simple_path = answer_root / "simple.json"
+            simple = json.loads(simple_path.read_text(encoding="utf-8"))
+            simple["cases"][0]["answers"][0]["api_key"] = "must-not-publish"
+            simple_path.write_text(json.dumps(simple), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "unsafe answer fields"):
+                build._validate_answers(repository_root, comparison)
+
+    def test_built_site_contains_no_private_runtime_details(self):
+        build = load_build_module()
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "public"
+            build.build_site(REPOSITORY_ROOT, output)
+            published_text = "\n".join(
+                path.read_text(encoding="utf-8")
+                for path in output.rglob("*")
+                if path.is_file()
+            )
+
+            forbidden_patterns = (
+                r"\bsalur\b",
+                r"sk-[0-9a-f]{40,}",
+                r"/home/temp-dev",
+                r"\.env-file",
+                r"api_key_env",
+            )
+            for pattern in forbidden_patterns:
+                with self.subTest(pattern=pattern):
+                    self.assertIsNone(re.search(pattern, published_text, re.IGNORECASE))
 
 
 if __name__ == "__main__":

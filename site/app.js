@@ -1,4 +1,5 @@
 const DATA_URL = document.body.dataset.resultsUrl || "./data/comparison.json";
+const ANSWERS_URL = document.body.dataset.answersUrl || "./data/answers/manifest.json";
 
 const MODEL_COLORS = ["#c8ff61", "#6ee7b7", "#66d8e5", "#ffcb66"];
 const CATEGORY_COPY = {
@@ -27,6 +28,19 @@ const CATEGORY_COPY = {
 const percent = (value) => `${(value * 100).toFixed(2)}%`;
 const wholePercent = (value) => `${(value * 100).toFixed(2).replace(/\.00$/, "")}%`;
 let categoryAnimationFrame;
+const ANSWERS_PER_PAGE = 8;
+const ANSWER_FETCH_TIMEOUT_MS = 15_000;
+const answerState = {
+  manifest: null,
+  cases: [],
+  page: 1,
+  result: "all",
+  search: "",
+};
+const answerCategoryCache = new Map();
+const answerSearchText = new WeakMap();
+let answerLoadSequence = 0;
+let answerSearchTimer;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -175,6 +189,268 @@ function renderSummary(data) {
   document.querySelector("#dataset-revision").textContent = `Pinned at ${data.dataset_revision.slice(0, 10)}`;
 }
 
+function questionText(question) {
+  if (typeof question === "string") return question;
+  if (Array.isArray(question)) return question.map(questionText).filter(Boolean).join("\n");
+  if (question && typeof question === "object") {
+    if (typeof question.content === "string") return question.content;
+    return JSON.stringify(question, null, 2);
+  }
+  return "";
+}
+
+function jsonBlock(value, emptyMessage) {
+  const pre = element("pre", "answer-json");
+  const isEmpty = value == null || value === "" || (Array.isArray(value) && value.length === 0);
+  pre.textContent = isEmpty ? emptyMessage : JSON.stringify(value, null, 2);
+  return pre;
+}
+
+function renderAnswerCard(answer, modelById) {
+  const card = element("article", "model-answer");
+  const header = element("div", "model-answer-header");
+  header.append(element("h4", "", modelById.get(answer.model_id) || answer.model_id));
+  header.append(
+    element(
+      "span",
+      `answer-status ${answer.passed ? "answer-status-pass" : "answer-status-fail"}`,
+      answer.passed ? "Pass" : "Fail",
+    ),
+  );
+  card.append(header);
+  card.append(element("p", "answer-reason", answer.reason || answer.status || "No score detail"));
+
+  const hasContent = Boolean(answer.content.trim());
+  const response = element(
+    "pre",
+    `answer-copy${hasContent ? "" : " answer-copy-empty"}`,
+    hasContent ? answer.content : "No text response.",
+  );
+  card.append(response);
+  if (answer.tool_calls.length) {
+    const details = element("details", "answer-details");
+    details.append(element("summary", "", `Tool calls (${answer.tool_calls.length})`));
+    details.append(jsonBlock(answer.tool_calls, "No tool calls."));
+    card.append(details);
+  }
+  return card;
+}
+
+function renderAnswerCase(caseData, modelById) {
+  const article = element("article", "answer-case");
+  const header = element("div", "answer-case-header");
+  header.append(element("p", "answer-case-id", caseData.id));
+  const passed = caseData.answers.filter((answer) => answer.passed).length;
+  header.append(element("p", "answer-case-score", `${passed} / ${caseData.answers.length} models passed`));
+  article.append(header);
+
+  const prompt = element("div", "answer-prompt");
+  prompt.append(element("span", "answer-label", "User prompt"));
+  prompt.append(element("p", "", questionText(caseData.question) || "No prompt text."));
+  article.append(prompt);
+
+  const inputs = element("div", "answer-inputs");
+  const functions = Array.isArray(caseData.functions) ? caseData.functions : [];
+  const functionDetails = element("details", "answer-details");
+  functionDetails.append(
+    element(
+      "summary",
+      "",
+      functions.length
+        ? `Translated function and parameter descriptions (${functions.length})`
+        : "No functions supplied",
+    ),
+  );
+  functionDetails.append(jsonBlock(functions, "No functions supplied for this case."));
+  inputs.append(functionDetails);
+  if (caseData.ground_truth != null) {
+    const expectedDetails = element("details", "answer-details");
+    expectedDetails.append(element("summary", "", "Expected tool call"));
+    expectedDetails.append(jsonBlock(caseData.ground_truth, "No expected tool call."));
+    inputs.append(expectedDetails);
+  }
+  article.append(inputs);
+
+  const grid = element("div", "model-answer-grid");
+  caseData.answers.forEach((answer) => grid.append(renderAnswerCard(answer, modelById)));
+  article.append(grid);
+  return article;
+}
+
+function filteredAnswerCases() {
+  const needle = answerState.search.trim().toLocaleLowerCase();
+  return answerState.cases.filter((caseData) => {
+    const allPassed = caseData.answers.every((answer) => answer.passed);
+    if (answerState.result === "failed" && allPassed) return false;
+    if (answerState.result === "passed" && !allPassed) return false;
+    if (!needle) return true;
+    return answerSearchText.get(caseData).includes(needle);
+  });
+}
+
+function renderAnswerBrowser() {
+  const container = document.querySelector("#answer-cases");
+  const modelById = new Map(
+    answerState.manifest.models.map((model) => [model.model_id, model.model]),
+  );
+  const filtered = filteredAnswerCases();
+  const pageCount = Math.max(1, Math.ceil(filtered.length / ANSWERS_PER_PAGE));
+  answerState.page = Math.min(answerState.page, pageCount);
+  const start = (answerState.page - 1) * ANSWERS_PER_PAGE;
+  const visible = filtered.slice(start, start + ANSWERS_PER_PAGE);
+  container.replaceChildren();
+  visible.forEach((caseData) => container.append(renderAnswerCase(caseData, modelById)));
+  if (!visible.length) {
+    container.append(element("p", "error-state", "No cases match these filters."));
+  }
+
+  document.querySelector("#answer-count").textContent =
+    `${filtered.length.toLocaleString("en-US")} of ${answerState.cases.length.toLocaleString("en-US")} cases`;
+  document.querySelector("#answer-page").textContent = `Page ${answerState.page} of ${pageCount}`;
+  document.querySelector("#answer-previous").disabled = answerState.page === 1;
+  document.querySelector("#answer-next").disabled = answerState.page === pageCount;
+}
+
+function showAnswerBrowserError(message) {
+  answerState.cases = [];
+  answerState.page = 1;
+  document.querySelector("#answer-cases").replaceChildren(element("p", "error-state", message));
+  document.querySelector("#answer-count").textContent = "0 of 0 cases";
+  document.querySelector("#answer-page").textContent = "Unavailable";
+  document.querySelector("#answer-previous").disabled = true;
+  document.querySelector("#answer-next").disabled = true;
+  document.querySelector("#answer-download").removeAttribute("href");
+}
+
+async function fetchAnswerJson(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ANSWER_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function loadAnswerCategory(categoryId) {
+  const category = answerState.manifest.categories.find((item) => item.id === categoryId);
+  if (!category) throw new Error(`Unknown answer category: ${categoryId}`);
+  const loadSequence = ++answerLoadSequence;
+  const manifestUrl = new URL(ANSWERS_URL, window.location.href);
+  const categoryUrl = new URL(category.file, manifestUrl);
+  if (!answerCategoryCache.has(categoryId)) {
+    const request = fetchAnswerJson(categoryUrl)
+      .then((data) => {
+        data.cases.forEach((caseData) => {
+          answerSearchText.set(caseData, JSON.stringify(caseData).toLocaleLowerCase());
+        });
+        return data;
+      })
+      .catch((error) => {
+        answerCategoryCache.delete(categoryId);
+        throw error;
+      });
+    answerCategoryCache.set(categoryId, request);
+  }
+  let data;
+  try {
+    data = await answerCategoryCache.get(categoryId);
+  } catch (error) {
+    if (loadSequence !== answerLoadSequence) return false;
+    throw error;
+  }
+  if (loadSequence !== answerLoadSequence) return false;
+  answerState.cases = data.cases;
+  answerState.page = 1;
+  document.querySelector("#answer-download").href = categoryUrl.href;
+  renderAnswerBrowser();
+  return true;
+}
+
+async function initialiseAnswers() {
+  try {
+    answerState.manifest = await fetchAnswerJson(ANSWERS_URL);
+    const select = document.querySelector("#answer-category");
+    answerState.manifest.categories.forEach((category) => {
+      const option = element(
+        "option",
+        "",
+        `${CATEGORY_COPY[category.id]?.label || category.id} (${category.count})`,
+      );
+      option.value = category.id;
+      select.append(option);
+    });
+    const requested = new URLSearchParams(window.location.search).get("answers");
+    const initialCategory = answerState.manifest.categories.some((item) => item.id === requested)
+      ? requested
+      : "chatable";
+    select.value = initialCategory;
+    select.addEventListener("change", async () => {
+      const requestedCategory = select.value;
+      const url = new URL(window.location);
+      url.searchParams.set("answers", requestedCategory);
+      window.history.replaceState({}, "", url);
+      try {
+        await loadAnswerCategory(requestedCategory);
+      } catch (error) {
+        if (select.value !== requestedCategory) return;
+        showAnswerBrowserError("This answer category could not be loaded.");
+        console.error("Answer category load failed", error);
+      }
+    });
+    document.querySelector("#answer-result").addEventListener("change", (event) => {
+      answerState.result = event.target.value;
+      answerState.page = 1;
+      renderAnswerBrowser();
+    });
+    document.querySelector("#answer-search").addEventListener("input", (event) => {
+      clearTimeout(answerSearchTimer);
+      answerSearchTimer = setTimeout(() => {
+        answerState.search = event.target.value;
+        answerState.page = 1;
+        renderAnswerBrowser();
+      }, 120);
+    });
+    document.querySelector("#answer-previous").addEventListener("click", () => {
+      answerState.page -= 1;
+      renderAnswerBrowser();
+      document.querySelector("#answer-browser").scrollIntoView();
+    });
+    document.querySelector("#answer-next").addEventListener("click", () => {
+      answerState.page += 1;
+      renderAnswerBrowser();
+      document.querySelector("#answer-browser").scrollIntoView();
+    });
+    const loadInitialCategory = async () => {
+      await loadAnswerCategory(initialCategory);
+      if (window.location.hash === "#answer-browser") {
+        requestAnimationFrame(() => document.querySelector("#answer-browser").scrollIntoView());
+      }
+    };
+    if (requested || window.location.hash === "#answer-browser" || !("IntersectionObserver" in window)) {
+      await loadInitialCategory();
+    } else {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          loadInitialCategory().catch((error) => {
+            showAnswerBrowserError("The raw model answers could not be loaded.");
+            console.error("Answer browser load failed", error);
+          });
+        },
+        { rootMargin: "600px" },
+      );
+      observer.observe(document.querySelector("#answer-browser"));
+    }
+  } catch (error) {
+    showAnswerBrowserError("The raw model answers could not be loaded.");
+    console.error("Answer browser load failed", error);
+  }
+}
+
 function showLoadError(error) {
   const chart = document.querySelector("#overall-chart");
   chart.replaceChildren(
@@ -203,6 +479,7 @@ async function initialise() {
   } catch (error) {
     showLoadError(error);
   }
+  await initialiseAnswers();
 }
 
 initialise();

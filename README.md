@@ -4,7 +4,8 @@ Public evaluation harnesses and reproducible result summaries from
 [PixelSpaceAI](https://github.com/PixelSpaceAI).
 
 Explore the results on the
-[public benchmark dashboard](https://pixelspaceai.github.io/benchmark/).
+[public benchmark dashboard](https://pixelspaceai.github.io/benchmark/),
+including a filterable browser with every prompt and model answer.
 
 ## Benchmarks
 
