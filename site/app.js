@@ -206,6 +206,192 @@ function jsonBlock(value, emptyMessage) {
   return pre;
 }
 
+function safeMarkdownLink(rawHref) {
+  try {
+    const url = new URL(rawHref, window.location.href);
+    return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function appendInlineMarkdown(parent, text) {
+  const tokenPattern = /(?:\\\*|`[^`\n]+`|\*\*[^*\n]+?\*\*|__[^_\n]+?__|(?<![\\*])\*(?![\s*])(?:\\.|[^*\\\n])*(?<![\s\\])\*(?!\*)|\[[^\]\n]+\]\([^\s)]+\))/g;
+  let cursor = 0;
+
+  for (const match of text.matchAll(tokenPattern)) {
+    const token = match[0];
+    const offset = match.index;
+    parent.append(text.slice(cursor, offset));
+    if (token === "\\*") {
+      parent.append("*");
+    } else if (token.startsWith("`")) {
+      parent.append(element("code", "", token.slice(1, -1)));
+    } else if (token.startsWith("**") || token.startsWith("__")) {
+      parent.append(element("strong", "", token.slice(2, -2)));
+    } else if (token.startsWith("*")) {
+      parent.append(element("em", "", token.slice(1, -1)));
+    } else {
+      const separator = token.lastIndexOf("](");
+      const label = token.slice(1, separator);
+      const href = safeMarkdownLink(token.slice(separator + 2, -1));
+      if (href) {
+        const link = element("a", "", label);
+        link.href = href;
+        link.rel = "noopener noreferrer";
+        parent.append(link);
+      } else {
+        parent.append(token);
+      }
+    }
+    cursor = offset + token.length;
+  }
+  parent.append(text.slice(cursor));
+}
+
+function markdownTableCells(line) {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  return trimmed.split("|").map((cell) => cell.trim());
+}
+
+function isMarkdownTableDivider(line) {
+  return markdownTableCells(line).every((cell) => /^:?-{3,}:?$/.test(cell));
+}
+
+function isMarkdownBlockStart(lines, index) {
+  const line = lines[index];
+  return (
+    /^\s*```/.test(line)
+    || /^#{1,6}\s+/.test(line)
+    || /^\s*(?:[-+*]|\d+[.)])\s+/.test(line)
+    || /^>\s?/.test(line)
+    || /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)
+    || (line.includes("|") && index + 1 < lines.length && isMarkdownTableDivider(lines[index + 1]))
+  );
+}
+
+function appendMarkdownLines(parent, lines) {
+  for (let index = 0; index < lines.length;) {
+    const line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+
+    const fence = line.match(/^\s*```([^\s`]*)\s*$/);
+    if (fence) {
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !/^\s*```\s*$/.test(lines[index])) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      const code = element("code", fence[1] ? `language-${fence[1]}` : "", codeLines.join("\n"));
+      const pre = element("pre", "markdown-code-block");
+      pre.append(code);
+      parent.append(pre);
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      const headingNode = element("h5", `markdown-heading markdown-heading-${heading[1].length}`);
+      appendInlineMarkdown(headingNode, heading[2]);
+      parent.append(headingNode);
+      index += 1;
+      continue;
+    }
+
+    if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      parent.append(element("hr"));
+      index += 1;
+      continue;
+    }
+
+    if (line.includes("|") && index + 1 < lines.length && isMarkdownTableDivider(lines[index + 1])) {
+      const table = element("table", "markdown-table");
+      const head = element("thead");
+      const headRow = element("tr");
+      markdownTableCells(line).forEach((cell) => {
+        const header = element("th");
+        appendInlineMarkdown(header, cell);
+        headRow.append(header);
+      });
+      head.append(headRow);
+      table.append(head);
+      index += 2;
+      const body = element("tbody");
+      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) {
+        const row = element("tr");
+        markdownTableCells(lines[index]).forEach((cell) => {
+          const data = element("td");
+          appendInlineMarkdown(data, cell);
+          row.append(data);
+        });
+        body.append(row);
+        index += 1;
+      }
+      table.append(body);
+      const tableWrap = element("div", "markdown-table-wrap");
+      tableWrap.append(table);
+      parent.append(tableWrap);
+      continue;
+    }
+
+    const listItem = line.match(/^\s*([-+*]|\d+[.)])\s+(.+)$/);
+    if (listItem) {
+      const ordered = /^\d/.test(listItem[1]);
+      const list = element(ordered ? "ol" : "ul");
+      if (ordered) {
+        const start = Number.parseInt(listItem[1], 10);
+        if (start !== 1) list.start = start;
+      }
+      while (index < lines.length) {
+        const item = lines[index].match(/^\s*([-+*]|\d+[.)])\s+(.+)$/);
+        if (!item || /^\d/.test(item[1]) !== ordered) break;
+        const listNode = element("li");
+        appendInlineMarkdown(listNode, item[2]);
+        list.append(listNode);
+        index += 1;
+      }
+      parent.append(list);
+      continue;
+    }
+
+    if (/^>\s?/.test(line)) {
+      const quoteLines = [];
+      while (index < lines.length && /^>\s?/.test(lines[index])) {
+        quoteLines.push(lines[index].replace(/^>\s?/, ""));
+        index += 1;
+      }
+      const quote = element("blockquote");
+      appendMarkdownLines(quote, quoteLines);
+      parent.append(quote);
+      continue;
+    }
+
+    const paragraphLines = [line];
+    index += 1;
+    while (index < lines.length && lines[index].trim() && !isMarkdownBlockStart(lines, index)) {
+      paragraphLines.push(lines[index]);
+      index += 1;
+    }
+    const paragraph = element("p");
+    paragraphLines.forEach((paragraphLine, lineIndex) => {
+      if (lineIndex) paragraph.append(element("br"));
+      appendInlineMarkdown(paragraph, paragraphLine);
+    });
+    parent.append(paragraph);
+  }
+}
+
+function renderMarkdown(markdown) {
+  const fragment = document.createDocumentFragment();
+  appendMarkdownLines(fragment, markdown.replace(/\r\n?/g, "\n").split("\n"));
+  return fragment;
+}
+
 function renderAnswerCard(answer, modelById) {
   const card = element("article", "model-answer");
   const header = element("div", "model-answer-header");
@@ -221,12 +407,24 @@ function renderAnswerCard(answer, modelById) {
   card.append(element("p", "answer-reason", answer.reason || answer.status || "No score detail"));
 
   const hasContent = Boolean(answer.content.trim());
-  const response = element(
-    "pre",
-    `answer-copy${hasContent ? "" : " answer-copy-empty"}`,
-    hasContent ? answer.content : "No text response.",
-  );
+  const response = element("div", `answer-copy markdown-body${hasContent ? "" : " answer-copy-empty"}`);
+  if (hasContent) {
+    response.append(renderMarkdown(answer.content));
+  } else {
+    response.append(element("p", "", "No text response."));
+  }
   card.append(response);
+  if (hasContent) {
+    const raw = element("details", "answer-details answer-raw");
+    raw.append(element("summary", "", "Raw Markdown"));
+    const renderRawMarkdown = () => {
+      if (!raw.open) return;
+      raw.append(element("pre", "answer-json", answer.content));
+      raw.removeEventListener("toggle", renderRawMarkdown);
+    };
+    raw.addEventListener("toggle", renderRawMarkdown);
+    card.append(raw);
+  }
   if (answer.tool_calls.length) {
     const details = element("details", "answer-details");
     details.append(element("summary", "", `Tool calls (${answer.tool_calls.length})`));
