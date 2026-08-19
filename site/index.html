@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Public Malay BFCL tool-calling benchmark results from PixelSpaceAI.">
+    <meta name="theme-color" content="#07130f">
+    <title>Malay BFCL Benchmark | PixelSpaceAI</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body data-results-url="./data/comparison.json">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header shell">
+      <a class="brand" href="https://github.com/PixelSpaceAI" aria-label="PixelSpaceAI on GitHub">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span>PixelSpace<span>AI</span></span>
+      </a>
+      <a class="header-link" href="https://github.com/PixelSpaceAI/benchmark">
+        View source
+        <span aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main>
+      <section class="hero shell">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> Open benchmark · August 2026</p>
+          <h1>Tool calling,<br><em>measured in Malay.</em></h1>
+          <p class="hero-lede">
+            A focused look at how four language models understand Malay prompts,
+            function descriptions, and parameter descriptions across BFCL v3.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#leaderboard">Explore results</a>
+            <a class="button button-secondary" href="https://github.com/PixelSpaceAI/benchmark/tree/main/bfcl-malay-bench">Run it yourself</a>
+          </div>
+        </div>
+
+        <aside class="hero-score" aria-label="Top benchmark result">
+          <div class="score-orbit" aria-hidden="true"></div>
+          <p class="score-kicker">Leading score</p>
+          <strong id="leading-score">--</strong>
+          <p id="leading-model">Loading results…</p>
+          <div class="score-rule"></div>
+          <span id="lead-margin">Across the focused suite</span>
+        </aside>
+      </section>
+
+      <section class="stat-strip" aria-label="Benchmark summary">
+        <div class="shell stat-grid">
+          <div><strong id="case-count">1,040</strong><span>test cases</span></div>
+          <div><strong id="model-count">4</strong><span>models compared</span></div>
+          <div><strong id="category-count">4</strong><span>Malay-focused categories</span></div>
+          <div><strong>0</strong><span>tools executed</span></div>
+        </div>
+      </section>
+
+      <section class="section shell" id="leaderboard">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">01 / Overall</p>
+            <h2>The leaderboard</h2>
+          </div>
+          <p>Exact local scoring over the same 1,040 cases. Higher is better.</p>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-scale" aria-hidden="true">
+            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+          </div>
+          <div id="overall-chart" class="leaderboard-chart" aria-live="polite">
+            <p class="loading-state">Loading benchmark results…</p>
+          </div>
+        </div>
+
+        <div class="insight-grid">
+          <article class="insight-card insight-featured">
+            <p>Top-line takeaway</p>
+            <h3 id="leader-insight">Loading the closest race…</h3>
+          </article>
+          <article class="insight-card">
+            <p>What this measures</p>
+            <h3>Tool choice, arguments, restraint, and conversational replies.</h3>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-categories shell" id="categories">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">02 / Categories</p>
+            <h2>Where models differ</h2>
+          </div>
+          <p>Choose a category to compare the same models on a narrower skill.</p>
+        </div>
+
+        <div id="category-controls" class="category-controls" role="group" aria-label="Select benchmark category"></div>
+
+        <div class="category-panel">
+          <div class="category-panel-header">
+            <div>
+              <p id="category-label">Category</p>
+              <h3 id="category-title">Simple tool calls</h3>
+            </div>
+            <p id="category-description">One function, one precise set of arguments.</p>
+          </div>
+          <div id="category-chart" class="category-chart" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="section shell" id="detail">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">03 / Exact results</p>
+            <h2>Every score</h2>
+          </div>
+          <p>Passed cases over scored cases. No hidden weighting.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Model</th>
+                <th scope="col">Overall</th>
+                <th scope="col">Simple</th>
+                <th scope="col">Multiple</th>
+                <th scope="col">Irrelevance</th>
+                <th scope="col">Chatable</th>
+              </tr>
+            </thead>
+            <tbody id="results-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="method shell">
+        <div>
+          <p class="section-number">Method note</p>
+          <h2>A practical harness score,<br>not an official BFCL submission.</h2>
+        </div>
+        <div class="method-copy">
+          <p>
+            The focused suite covers <strong>simple</strong>, <strong>multiple</strong>,
+            <strong>irrelevance</strong>, and <strong>chatable</strong>. It scores the
+            first assistant response and never executes benchmark tools.
+          </p>
+          <p>
+            Results compare full serving paths. ILMU used a direct OpenAI-compatible
+            endpoint; the other deployments used the Pixel Harness command adapter.
+          </p>
+          <a href="https://github.com/PixelSpaceAI/benchmark/blob/main/bfcl-malay-bench/RESULTS.md">Read the full methodology <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell footer-grid">
+        <div>
+          <a class="brand" href="https://github.com/PixelSpaceAI">
+            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>PixelSpace<span>AI</span></span>
+          </a>
+          <p>Open tools for multilingual AI evaluation.</p>
+        </div>
+        <p>Dataset <a href="https://huggingface.co/datasets/khursani8/bfcl-ms">khursani8/bfcl-ms</a><br><span id="dataset-revision">Pinned revision</span></p>
+      </div>
+    </footer>
+  </body>
+</html>
