@@ -12,8 +12,19 @@ import shutil
 
 ASSET_NAMES = ("index.html", "styles.css", "app.js", "favicon.svg")
 RESULTS_PATH = Path("bfcl-malay-bench/results/comparison.json")
+ANSWERS_PATH = Path("bfcl-malay-bench/results/answers")
 BUILD_MARKER = ".pixelspace-benchmark-site"
 SUPPORTED_CATEGORIES = ("simple", "multiple", "irrelevance", "chatable")
+CASE_KEYS = {"id", "question", "functions", "ground_truth", "answers"}
+ANSWER_KEYS = {
+    "model_id",
+    "status",
+    "passed",
+    "reason",
+    "latency_ms",
+    "content",
+    "tool_calls",
+}
 
 
 def _require_non_empty_string(value: object, field: str) -> None:
@@ -101,6 +112,68 @@ def _validate_results(data: dict) -> None:
             raise ValueError(f"{result['model']} category scored counts do not match overall")
 
 
+def _validate_answers(repository_root: Path, comparison: dict) -> tuple[dict, list[Path]]:
+    answer_root = repository_root / ANSWERS_PATH
+    manifest_path = answer_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("answer manifest must be an object")
+    for key in ("dataset", "dataset_revision", "total_cases"):
+        if manifest.get(key) != comparison[key]:
+            raise ValueError(f"answer manifest {key} does not match comparison")
+
+    expected_models = [
+        {"model_id": result["model_id"], "model": result["model"]}
+        for result in comparison["results"]
+    ]
+    if manifest.get("models") != expected_models:
+        raise ValueError("answer manifest models do not match comparison")
+
+    categories = manifest.get("categories")
+    if not isinstance(categories, list) or [item.get("id") for item in categories] != comparison[
+        "categories"
+    ]:
+        raise ValueError("answer manifest categories do not match comparison")
+
+    category_paths = []
+    total_cases = 0
+    expected_model_ids = [model["model_id"] for model in expected_models]
+    for category in categories:
+        category_id = category["id"]
+        filename = category.get("file")
+        if filename != f"{category_id}.json":
+            raise ValueError(f"answer category {category_id} has an invalid filename")
+        path = answer_root / filename
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(document, dict) or document.get("category") != category_id:
+            raise ValueError(f"answer data for {category_id} has an invalid category")
+        cases = document.get("cases")
+        if not isinstance(cases, list) or category.get("count") != len(cases):
+            raise ValueError(f"answer data for {category_id} has an invalid case count")
+        case_ids = set()
+        for case in cases:
+            if not isinstance(case, dict) or set(case) != CASE_KEYS:
+                raise ValueError(f"answer data for {category_id} has an invalid case")
+            _require_non_empty_string(case["id"], f"answers.{category_id}.id")
+            if case["id"] in case_ids:
+                raise ValueError(f"answer data for {category_id} has duplicate ids")
+            case_ids.add(case["id"])
+            answers = case["answers"]
+            if not isinstance(answers, list) or [answer.get("model_id") for answer in answers] != expected_model_ids:
+                raise ValueError(f"answer data for {category_id} has invalid model answers")
+            for answer in answers:
+                if set(answer) != ANSWER_KEYS:
+                    raise ValueError(f"answer data for {category_id} has unsafe answer fields")
+                if not isinstance(answer["content"], str) or not isinstance(answer["tool_calls"], list):
+                    raise ValueError(f"answer data for {category_id} has invalid answer content")
+        total_cases += len(cases)
+        category_paths.append(path)
+
+    if total_cases != comparison["total_cases"]:
+        raise ValueError("answer category counts do not match comparison total_cases")
+    return manifest, category_paths
+
+
 def build_site(repository_root: Path, output: Path) -> None:
     repository_root = repository_root.resolve()
     source = repository_root / "site"
@@ -113,6 +186,7 @@ def build_site(repository_root: Path, output: Path) -> None:
 
     data = json.loads((repository_root / RESULTS_PATH).read_text(encoding="utf-8"))
     _validate_results(data)
+    answer_manifest, answer_paths = _validate_answers(repository_root, data)
 
     if output.exists():
         if not output.is_dir() or not (output / BUILD_MARKER).is_file():
@@ -127,6 +201,14 @@ def build_site(repository_root: Path, output: Path) -> None:
         json.dumps(data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    published_answers = output / "data" / "answers"
+    published_answers.mkdir()
+    (published_answers / "manifest.json").write_text(
+        json.dumps(answer_manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    for answer_path in answer_paths:
+        shutil.copy2(answer_path, published_answers / answer_path.name)
     (output / ".nojekyll").touch()
     (output / BUILD_MARKER).touch()
 

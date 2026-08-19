@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - "site/**"
-      - "bfcl-malay-bench/results/comparison.json"
+      - "bfcl-malay-bench/results/**"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
       - "site/**"
-      - "bfcl-malay-bench/results/comparison.json"
+      - "bfcl-malay-bench/results/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 

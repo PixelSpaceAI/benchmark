@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "dataset": "khursani8/bfcl-ms",
+  "dataset_revision": "8b610947fdbf33d75b3d0109419f36f1177d8f0a",
+  "total_cases": 1040,
+  "models": [
+    {
+      "model_id": "ilmu-mini-v3.3",
+      "model": "ILMU Mini v3.3"
+    },
+    {
+      "model_id": "nemotron-3.5-lightning",
+      "model": "Nemotron 3.5 Lightning"
+    },
+    {
+      "model_id": "muse-glimmer-30b",
+      "model": "Muse Glimmer 30B"
+    },
+    {
+      "model_id": "qwen3.8-27b",
+      "model": "Qwen 3.8 27B"
+    }
+  ],
+  "categories": [
+    {
+      "id": "simple",
+      "count": 400,
+      "file": "simple.json"
+    },
+    {
+      "id": "multiple",
+      "count": 200,
+      "file": "multiple.json"
+    },
+    {
+      "id": "irrelevance",
+      "count": 240,
+      "file": "irrelevance.json"
+    },
+    {
+      "id": "chatable",
+      "count": 200,
+      "file": "chatable.json"
+    }
+  ]
+}

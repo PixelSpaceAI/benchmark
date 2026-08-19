@@ -65,13 +65,34 @@ class BrowserSmokeTests(unittest.TestCase):
             try:
                 base_url = f"http://127.0.0.1:{server.server_port}"
                 rendered = self.dump_page(
-                    f"{base_url}/?category=multiple", temporary_path / "chrome-success"
+                    f"{base_url}/?category=multiple&answers=chatable",
+                    temporary_path / "chrome-success",
                 )
                 self.assertIn("76.54%", rendered)
                 self.assertIn("ILMU Mini v3.3", rendered)
                 self.assertIn("Multiple choices", rendered)
                 self.assertIn("130 / 200", rendered)
+                self.assertIn("Read every response", rendered)
+                self.assertIn("chatable_0", rendered)
+                self.assertIn("Luas bagi sebuah segi tiga dikira dengan formula", rendered)
+                self.assertIn("Luas segitiga dihitung dengan rumus", rendered)
+                self.assertIn(
+                    '<pre class="answer-copy">\n&lt;/parameter&gt;',
+                    rendered,
+                )
+                self.assertIn("200 of 200 cases", rendered)
+                self.assertIn("Download JSON", rendered)
                 self.assertNotIn("Loading benchmark results", rendered)
+                self.assertNotIn("Loading model answers", rendered)
+
+                (output / "data" / "answers" / "chatable.json").unlink()
+                missing_answers = self.dump_page(
+                    f"{base_url}/?answers=chatable",
+                    temporary_path / "chrome-missing-answers",
+                )
+                self.assertIn("The raw model answers could not be loaded", missing_answers)
+                self.assertIn("0 of 0 cases", missing_answers)
+                self.assertIn("Unavailable", missing_answers)
 
                 index = output / "index.html"
                 index.write_text(

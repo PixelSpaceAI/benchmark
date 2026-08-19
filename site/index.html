@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="./styles.css">
     <script src="./app.js" defer></script>
   </head>
-  <body data-results-url="./data/comparison.json">
+  <body data-results-url="./data/comparison.json" data-answers-url="./data/answers/manifest.json">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
@@ -137,6 +137,49 @@
             <tbody id="results-table-body"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="section shell" id="answer-browser">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">04 / Model answers</p>
+            <h2>Read every response</h2>
+          </div>
+          <p>Eyeball the Malay, spot Indonesian phrasing, and compare all four models on the same prompt.</p>
+        </div>
+
+        <div class="answer-toolbar">
+          <label>
+            <span>Category</span>
+            <select id="answer-category" aria-label="Answer category"></select>
+          </label>
+          <label>
+            <span>Result</span>
+            <select id="answer-result" aria-label="Filter answer results">
+              <option value="all">All cases</option>
+              <option value="failed">Any model failed</option>
+              <option value="passed">All models passed</option>
+            </select>
+          </label>
+          <label class="answer-search">
+            <span>Search</span>
+            <input id="answer-search" type="search" placeholder="Prompt, answer, function, or case ID">
+          </label>
+          <a id="answer-download" class="answer-download" href="./data/answers/chatable.json" download>Download JSON ↓</a>
+        </div>
+
+        <div class="answer-browser-meta">
+          <p id="answer-count">Loading all model answers…</p>
+          <p>Answers are shown verbatim; spelling and language choices are not corrected.</p>
+        </div>
+        <div id="answer-cases" class="answer-cases" aria-live="polite">
+          <p class="loading-state">Loading model answers…</p>
+        </div>
+        <nav class="answer-pagination" aria-label="Answer pages">
+          <button id="answer-previous" type="button">← Previous</button>
+          <span id="answer-page">Page 1</span>
+          <button id="answer-next" type="button">Next →</button>
+        </nav>
       </section>
 
       <section class="method shell">
