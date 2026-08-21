@@ -1,0 +1,92 @@
+{
+  "startedAt": "2026-08-20T19:02:39.483Z",
+  "endpoint": "http://model:8000/v1",
+  "model": "nemotron-3.5-lightning",
+  "config": {
+    "maxTokens": 64,
+    "temperature": 0,
+    "runs": 3,
+    "warmup": 1,
+    "promptChars": 179
+  },
+  "single": {
+    "okRuns": 3,
+    "failures": 0,
+    "promptTokens": 49,
+    "outputTokens": {
+      "min": 64,
+      "mean": 64,
+      "median": 64,
+      "p95": 64,
+      "max": 64
+    },
+    "ttftMs": {
+      "min": 99.4454659999999,
+      "mean": 100.23357699999997,
+      "median": 99.64690600000006,
+      "p95": 101.60835899999995,
+      "max": 101.60835899999995
+    },
+    "decodeTokS": {
+      "min": 163.237682725297,
+      "mean": 163.57340960205923,
+      "median": 163.4054946976755,
+      "p95": 164.07705138320523,
+      "max": 164.07705138320523
+    },
+    "e2eTokS": {
+      "min": 129.74584582943788,
+      "mean": 130.2156784347682,
+      "median": 130.15716206836902,
+      "p95": 130.7440274064977,
+      "max": 130.7440274064977
+    },
+    "totalMs": {
+      "min": 489.5061079999998,
+      "mean": 491.4971346666666,
+      "median": 491.71324100000004,
+      "p95": 493.272055,
+      "max": 493.272055
+    }
+  },
+  "concurrency": [
+    {
+      "concurrency": 1,
+      "ok": 1,
+      "failed": 0,
+      "wallMs": 490.09660400000007,
+      "outTokens": 64,
+      "aggTokS": 130.58649963630432,
+      "meanTtftMs": 97.79222000000027
+    }
+  ],
+  "rawRuns": [
+    {
+      "ok": true,
+      "ttftMs": 101.60835899999995,
+      "totalMs": 493.272055,
+      "promptTokens": 49,
+      "completionTokens": 64,
+      "decodeTokS": 163.4054946976755,
+      "e2eTokS": 129.74584582943788
+    },
+    {
+      "ok": true,
+      "ttftMs": 99.64690600000006,
+      "totalMs": 491.71324100000004,
+      "promptTokens": 49,
+      "completionTokens": 64,
+      "decodeTokS": 163.237682725297,
+      "e2eTokS": 130.15716206836902
+    },
+    {
+      "ok": true,
+      "ttftMs": 99.4454659999999,
+      "totalMs": 489.5061079999998,
+      "promptTokens": 49,
+      "completionTokens": 64,
+      "decodeTokS": 164.07705138320523,
+      "e2eTokS": 130.7440274064977
+    }
+  ]
+}

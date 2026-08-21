@@ -1,0 +1,137 @@
+{
+  "startedAt": "2026-08-20T19:04:33.043Z",
+  "endpoint": "http://model:8000/v1",
+  "model": "nemotron-3.5-lightning",
+  "config": {
+    "maxTokens": 128,
+    "temperature": 0,
+    "runs": 3,
+    "warmup": 1,
+    "promptChars": 179
+  },
+  "single": {
+    "okRuns": 3,
+    "failures": 0,
+    "promptTokens": 49,
+    "outputTokens": {
+      "min": 128,
+      "mean": 128,
+      "median": 128,
+      "p95": 128,
+      "max": 128
+    },
+    "ttftMs": {
+      "min": 87.05949199999986,
+      "mean": 88.6905456666666,
+      "median": 88.76172900000006,
+      "p95": 90.25041599999986,
+      "max": 90.25041599999986
+    },
+    "decodeTokS": {
+      "min": 123.09534441357549,
+      "mean": 123.29423257247964,
+      "median": 123.24475624541864,
+      "p95": 123.5425970584448,
+      "max": 123.5425970584448
+    },
+    "e2eTokS": {
+      "min": 113.41423806526822,
+      "mean": 113.59013151796366,
+      "median": 113.64339542234622,
+      "p95": 113.71276106627653,
+      "max": 113.71276106627653
+    },
+    "totalMs": {
+      "min": 1125.6432329999998,
+      "mean": 1126.8598759999998,
+      "median": 1126.3303029999997,
+      "p95": 1128.606092,
+      "max": 1128.606092
+    }
+  },
+  "concurrency": [
+    {
+      "concurrency": 1,
+      "ok": 1,
+      "failed": 0,
+      "wallMs": 1126.9027839999999,
+      "outTokens": 128,
+      "aggTokS": 113.58566312673163,
+      "meanTtftMs": 85.85001999999986
+    },
+    {
+      "concurrency": 2,
+      "ok": 2,
+      "failed": 0,
+      "wallMs": 1362.5001040000006,
+      "outTokens": 256,
+      "aggTokS": 187.88989391519334,
+      "meanTtftMs": 92.77162100000032
+    },
+    {
+      "concurrency": 4,
+      "ok": 4,
+      "failed": 0,
+      "wallMs": 1875.7980559999996,
+      "outTokens": 512,
+      "aggTokS": 272.950490785667,
+      "meanTtftMs": 164.10598525
+    },
+    {
+      "concurrency": 8,
+      "ok": 8,
+      "failed": 0,
+      "wallMs": 3717.09216,
+      "outTokens": 1024,
+      "aggTokS": 275.4841569491782,
+      "meanTtftMs": 1072.53366175
+    },
+    {
+      "concurrency": 16,
+      "ok": 16,
+      "failed": 0,
+      "wallMs": 7713.106783999998,
+      "outTokens": 2048,
+      "aggTokS": 265.52205970340685,
+      "meanTtftMs": 3070.9257350625
+    },
+    {
+      "concurrency": 32,
+      "ok": 32,
+      "failed": 0,
+      "wallMs": 15088.738764999998,
+      "outTokens": 4096,
+      "aggTokS": 271.46072735390754,
+      "meanTtftMs": 6411.450004718749
+    }
+  ],
+  "rawRuns": [
+    {
+      "ok": true,
+      "ttftMs": 88.76172900000006,
+      "totalMs": 1128.606092,
+      "promptTokens": 49,
+      "completionTokens": 128,
+      "decodeTokS": 123.09534441357549,
+      "e2eTokS": 113.41423806526822
+    },
+    {
+      "ok": true,
+      "ttftMs": 90.25041599999986,
+      "totalMs": 1126.3303029999997,
+      "promptTokens": 49,
+      "completionTokens": 128,
+      "decodeTokS": 123.5425970584448,
+      "e2eTokS": 113.64339542234622
+    },
+    {
+      "ok": true,
+      "ttftMs": 87.05949199999986,
+      "totalMs": 1125.6432329999998,
+      "promptTokens": 49,
+      "completionTokens": 128,
+      "decodeTokS": 123.24475624541864,
+      "e2eTokS": 113.71276106627653
+    }
+  ]
+}
