@@ -6,11 +6,13 @@ on:
     paths:
       - "site/**"
       - "bfcl-malay-bench/results/**"
+      - "pixelbench/results/**"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
       - "site/**"
       - "bfcl-malay-bench/results/**"
+      - "pixelbench/results/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 

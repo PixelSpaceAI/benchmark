@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="./styles.css">
     <script src="./app.js" defer></script>
   </head>
-  <body data-results-url="./data/comparison.json" data-answers-url="./data/answers/manifest.json">
+  <body data-results-url="./data/comparison.json" data-answers-url="./data/answers/manifest.json" data-latency-url="./data/latency.json">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
@@ -180,6 +180,64 @@
           <span id="answer-page">Page 1</span>
           <button id="answer-next" type="button">Next →</button>
         </nav>
+      </section>
+
+      <section class="section section-latency shell" id="serving-speed">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">05 / Serving speed</p>
+            <h2>How fast it answers</h2>
+          </div>
+          <p>A different axis: streaming latency and throughput of
+          <span id="latency-model">the bundled model</span> on
+          <span id="latency-host">the box it runs on</span>, measured by
+          <a href="https://github.com/PixelSpaceAI/benchmark/tree/main/pixelbench">pixelbench</a>.</p>
+        </div>
+
+        <div class="latency-kpis" id="latency-kpis" aria-live="polite">
+          <div class="latency-kpi"><span>Time to first token</span><strong id="lat-ttft">--</strong><small>median · single request</small></div>
+          <div class="latency-kpi"><span>Generation speed</span><strong id="lat-decode">--</strong><small>single stream · 256 tok</small></div>
+          <div class="latency-kpi"><span>Peak throughput</span><strong id="lat-peak">--</strong><small>aggregate</small></div>
+          <div class="latency-kpi"><span>Concurrency sweet spot</span><strong id="lat-sweet">--</strong><small>before TTFT climbs</small></div>
+        </div>
+
+        <div class="latency-columns">
+          <div class="chart-panel">
+            <p class="latency-chart-title">Generation speed by output length <span>decode tok/s · higher is better</span></p>
+            <div id="latency-length-chart" class="leaderboard-chart" aria-live="polite">
+              <p class="loading-state">Loading latency results…</p>
+            </div>
+          </div>
+          <div class="chart-panel">
+            <p class="latency-chart-title">Throughput vs concurrency <span>aggregate tok/s · mean TTFT beneath</span></p>
+            <div id="latency-concurrency-chart" class="leaderboard-chart" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="insight-grid">
+          <article class="insight-card insight-featured">
+            <p>Top-line takeaway</p>
+            <h3 id="latency-insight">Loading the throughput curve…</h3>
+          </article>
+          <article class="insight-card">
+            <p>What this measures</p>
+            <h3>Time to first token, tokens per second, and behaviour under concurrency.</h3>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Concurrency</th>
+                <th scope="col">Aggregate tok/s</th>
+                <th scope="col">Mean TTFT</th>
+                <th scope="col">Failed</th>
+              </tr>
+            </thead>
+            <tbody id="latency-table-body"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="method shell">

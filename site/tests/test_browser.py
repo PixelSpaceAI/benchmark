@@ -152,6 +152,12 @@ class BrowserSmokeTests(unittest.TestCase):
                 self.assertNotIn("Loading benchmark results", rendered)
                 self.assertNotIn("Loading model answers", rendered)
 
+                # Serving-speed section renders from latency.json.
+                self.assertIn("How fast it answers", rendered)
+                self.assertIn("nemotron-3.5-lightning", rendered)
+                self.assertIn("275 tok/s", rendered)
+                self.assertNotIn("Loading latency results", rendered)
+
                 index = output / "index.html"
                 index.write_text(
                     index.read_text(encoding="utf-8").replace(

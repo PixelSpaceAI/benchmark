@@ -12,6 +12,7 @@ import shutil
 
 ASSET_NAMES = ("index.html", "styles.css", "app.js", "favicon.svg")
 RESULTS_PATH = Path("bfcl-malay-bench/results/comparison.json")
+LATENCY_PATH = Path("pixelbench/results/latency.json")
 ANSWERS_PATH = Path("bfcl-malay-bench/results/answers")
 BUILD_MARKER = ".pixelspace-benchmark-site"
 SUPPORTED_CATEGORIES = ("simple", "multiple", "irrelevance", "chatable")
@@ -174,6 +175,71 @@ def _validate_answers(repository_root: Path, comparison: dict) -> tuple[dict, li
     return manifest, category_paths
 
 
+def _require_positive_number(value: object, field: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"latency {field} must be a number")
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"latency {field} must be a positive number")
+
+
+def _validate_latency(data: dict) -> None:
+    required = {
+        "benchmark",
+        "model",
+        "host",
+        "engine",
+        "measured",
+        "headline",
+        "by_length",
+        "by_concurrency",
+    }
+    missing = sorted(required.difference(data))
+    if missing:
+        raise ValueError(f"latency data is missing: {', '.join(missing)}")
+    for field in ("benchmark", "model", "host", "engine", "measured"):
+        _require_non_empty_string(data[field], f"latency {field}")
+
+    headline = data["headline"]
+    if not isinstance(headline, dict):
+        raise ValueError("latency headline must be an object")
+    for field in ("ttft_ms", "decode_tok_s", "peak_agg_tok_s", "sweet_spot"):
+        if field not in headline:
+            raise ValueError(f"latency headline is missing {field}")
+        _require_positive_number(headline[field], f"headline.{field}")
+
+    by_length = data["by_length"]
+    if not isinstance(by_length, list) or not by_length:
+        raise ValueError("latency by_length must be a non-empty list")
+    previous_tokens = 0
+    for index, point in enumerate(by_length):
+        if not isinstance(point, dict):
+            raise ValueError("latency by_length entries must be objects")
+        for field in ("tokens", "ttft_ms", "decode_tok_s", "total_ms"):
+            _require_positive_number(point.get(field), f"by_length[{index}].{field}")
+        if point["tokens"] <= previous_tokens:
+            raise ValueError("latency by_length must be ordered by ascending tokens")
+        previous_tokens = point["tokens"]
+
+    by_concurrency = data["by_concurrency"]
+    if not isinstance(by_concurrency, list) or not by_concurrency:
+        raise ValueError("latency by_concurrency must be a non-empty list")
+    previous_concurrency = 0
+    peak = 0
+    for index, point in enumerate(by_concurrency):
+        if not isinstance(point, dict):
+            raise ValueError("latency by_concurrency entries must be objects")
+        for field in ("concurrency", "agg_tok_s", "ttft_ms"):
+            _require_positive_number(point.get(field), f"by_concurrency[{index}].{field}")
+        _require_count(point.get("failed"), f"by_concurrency[{index}].failed")
+        if point["concurrency"] <= previous_concurrency:
+            raise ValueError("latency by_concurrency must be ordered by ascending concurrency")
+        previous_concurrency = point["concurrency"]
+        peak = max(peak, point["agg_tok_s"])
+
+    if not math.isclose(headline["peak_agg_tok_s"], peak, rel_tol=0, abs_tol=1e-9):
+        raise ValueError("latency headline.peak_agg_tok_s must equal the highest measured aggregate")
+
+
 def build_site(repository_root: Path, output: Path) -> None:
     repository_root = repository_root.resolve()
     source = repository_root / "site"
@@ -188,6 +254,9 @@ def build_site(repository_root: Path, output: Path) -> None:
     _validate_results(data)
     answer_manifest, answer_paths = _validate_answers(repository_root, data)
 
+    latency = json.loads((repository_root / LATENCY_PATH).read_text(encoding="utf-8"))
+    _validate_latency(latency)
+
     if output.exists():
         if not output.is_dir() or not (output / BUILD_MARKER).is_file():
             raise ValueError("refusing to replace an output directory not created by this builder")
@@ -199,6 +268,10 @@ def build_site(repository_root: Path, output: Path) -> None:
 
     (output / "data" / "comparison.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (output / "data" / "latency.json").write_text(
+        json.dumps(latency, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     published_answers = output / "data" / "answers"

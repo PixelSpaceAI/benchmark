@@ -1,5 +1,6 @@
 const DATA_URL = document.body.dataset.resultsUrl || "./data/comparison.json";
 const ANSWERS_URL = document.body.dataset.answersUrl || "./data/answers/manifest.json";
+const LATENCY_URL = document.body.dataset.latencyUrl || "./data/latency.json";
 
 const MODEL_COLORS = ["#c8ff61", "#6ee7b7", "#66d8e5", "#ffcb66"];
 const CATEGORY_COPY = {
@@ -649,6 +650,95 @@ async function initialiseAnswers() {
   }
 }
 
+function labelBlock(title, sub) {
+  const label = element("div", "model-label");
+  label.append(element("strong", "", title));
+  label.append(element("span", "", sub));
+  return label;
+}
+
+function renderLatencyBars(container, rows, color) {
+  container.replaceChildren();
+  const max = Math.max(...rows.map((row) => row.value)) || 1;
+  rows.forEach((row) => {
+    const line = element("div", "leaderboard-row");
+    line.append(labelBlock(row.title, row.sub));
+    line.append(barTrack(row.value / max, color, row.aria));
+    line.append(element("div", "bar-value", row.display));
+    container.append(line);
+  });
+  requestAnimationFrame(() => animateBars(container));
+}
+
+function renderLatency(data) {
+  const number = (value) => Number(value).toLocaleString("en-US");
+  document.querySelector("#latency-model").textContent = data.model;
+  document.querySelector("#latency-host").textContent = data.host;
+
+  document.querySelector("#lat-ttft").textContent = `${number(data.headline.ttft_ms)} ms`;
+  document.querySelector("#lat-decode").textContent = `${number(data.headline.decode_tok_s)} tok/s`;
+  document.querySelector("#lat-peak").textContent = `${number(data.headline.peak_agg_tok_s)} tok/s`;
+  document.querySelector("#lat-sweet").textContent = `${data.headline.sweet_spot}×`;
+
+  renderLatencyBars(
+    document.querySelector("#latency-length-chart"),
+    data.by_length.map((point) => ({
+      title: `${number(point.tokens)} tokens`,
+      sub: `${number(point.total_ms)} ms total · TTFT ${number(point.ttft_ms)} ms`,
+      value: point.decode_tok_s,
+      display: `${Math.round(point.decode_tok_s)} tok/s`,
+      aria: `${point.tokens} tokens: ${Math.round(point.decode_tok_s)} tokens per second`,
+    })),
+    "#6ee7b7",
+  );
+
+  renderLatencyBars(
+    document.querySelector("#latency-concurrency-chart"),
+    data.by_concurrency.map((point) => ({
+      title: `${point.concurrency} concurrent`,
+      sub: `mean TTFT ${number(point.ttft_ms)} ms`,
+      value: point.agg_tok_s,
+      display: `${number(point.agg_tok_s)} tok/s`,
+      aria: `${point.concurrency} concurrent requests: ${point.agg_tok_s} aggregate tokens per second`,
+    })),
+    "#c8ff61",
+  );
+
+  const sweet = data.by_concurrency.find((point) => point.concurrency === data.headline.sweet_spot)
+    || data.by_concurrency[0];
+  document.querySelector("#latency-insight").textContent =
+    `${data.model} clears ~${number(data.headline.decode_tok_s)} tok/s single-stream and peaks near `
+    + `${number(data.headline.peak_agg_tok_s)} tok/s around ${data.headline.sweet_spot} concurrent requests — `
+    + `where time to first token is still ~${number(sweet.ttft_ms)} ms. Beyond that, latency climbs without more throughput.`;
+
+  const body = document.querySelector("#latency-table-body");
+  body.replaceChildren();
+  data.by_concurrency.forEach((point) => {
+    const row = document.createElement("tr");
+    row.append(element("td", "", `${point.concurrency}×`));
+    row.append(element("td", "", `${number(point.agg_tok_s)} tok/s`));
+    row.append(element("td", "", `${number(point.ttft_ms)} ms`));
+    row.append(element("td", "", String(point.failed)));
+    body.append(row);
+  });
+}
+
+async function initialiseLatency() {
+  try {
+    const response = await fetch(LATENCY_URL);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    renderLatency(await response.json());
+  } catch (error) {
+    const chart = document.querySelector("#latency-length-chart");
+    if (chart) {
+      chart.replaceChildren(
+        element("p", "error-state", "The serving-speed data could not be loaded."),
+      );
+    }
+    console.error("Latency data load failed", error);
+  }
+}
+
 function showLoadError(error) {
   const chart = document.querySelector("#overall-chart");
   chart.replaceChildren(
@@ -681,3 +771,4 @@ async function initialise() {
 }
 
 initialise();
+initialiseLatency();

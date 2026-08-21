@@ -47,11 +47,22 @@ class SiteBuildTests(unittest.TestCase):
             for category in canonical_results["categories"]:
                 self.assertTrue((output / "data" / "answers" / f"{category}.json").is_file())
 
+            canonical_latency = json.loads(
+                (REPOSITORY_ROOT / build.LATENCY_PATH).read_text(encoding="utf-8")
+            )
+            published_latency = json.loads(
+                (output / "data" / "latency.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(published_latency, canonical_latency)
+
             page = (output / "index.html").read_text(encoding="utf-8")
             self.assertIn('id="overall-chart"', page)
             self.assertIn('id="category-controls"', page)
             self.assertIn('id="results-table-body"', page)
             self.assertIn('id="answer-browser"', page)
+            self.assertIn('id="serving-speed"', page)
+            self.assertIn('id="latency-length-chart"', page)
+            self.assertIn('id="latency-table-body"', page)
 
     def test_build_replaces_stale_output(self):
         build = load_build_module()
@@ -140,6 +151,36 @@ class SiteBuildTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "does not match its counts"):
             build._validate_results(canonical_results)
+
+    def test_latency_validation_rejects_missing_required_key(self):
+        build = load_build_module()
+        latency = json.loads(
+            (REPOSITORY_ROOT / build.LATENCY_PATH).read_text(encoding="utf-8")
+        )
+        del latency["headline"]
+
+        with self.assertRaisesRegex(ValueError, "missing: headline"):
+            build._validate_latency(latency)
+
+    def test_latency_validation_rejects_peak_mismatch(self):
+        build = load_build_module()
+        latency = json.loads(
+            (REPOSITORY_ROOT / build.LATENCY_PATH).read_text(encoding="utf-8")
+        )
+        latency["headline"]["peak_agg_tok_s"] += 50
+
+        with self.assertRaisesRegex(ValueError, "highest measured aggregate"):
+            build._validate_latency(latency)
+
+    def test_latency_validation_rejects_unordered_concurrency(self):
+        build = load_build_module()
+        latency = json.loads(
+            (REPOSITORY_ROOT / build.LATENCY_PATH).read_text(encoding="utf-8")
+        )
+        latency["by_concurrency"][1]["concurrency"] = 1
+
+        with self.assertRaisesRegex(ValueError, "ascending concurrency"):
+            build._validate_latency(latency)
 
     def test_answer_validation_rejects_unexpected_published_fields(self):
         build = load_build_module()

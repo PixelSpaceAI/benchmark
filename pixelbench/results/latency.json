@@ -1,0 +1,78 @@
+{
+  "benchmark": "pixelbench",
+  "model": "nemotron-3.5-lightning",
+  "model_full": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4",
+  "host": "DGX Spark",
+  "engine": "vLLM",
+  "measured": "2026-08-21",
+  "headline": {
+    "ttft_ms": 99,
+    "decode_tok_s": 108,
+    "peak_agg_tok_s": 275,
+    "sweet_spot": 4
+  },
+  "by_length": [
+    {
+      "tokens": 64,
+      "ttft_ms": 100,
+      "decode_tok_s": 163.6,
+      "total_ms": 492
+    },
+    {
+      "tokens": 256,
+      "ttft_ms": 99,
+      "decode_tok_s": 107.7,
+      "total_ms": 2478
+    },
+    {
+      "tokens": 512,
+      "ttft_ms": 85,
+      "decode_tok_s": 97.2,
+      "total_ms": 5357
+    },
+    {
+      "tokens": 1024,
+      "ttft_ms": 97,
+      "decode_tok_s": 94.3,
+      "total_ms": 10956
+    }
+  ],
+  "by_concurrency": [
+    {
+      "concurrency": 1,
+      "agg_tok_s": 114,
+      "ttft_ms": 86,
+      "failed": 0
+    },
+    {
+      "concurrency": 2,
+      "agg_tok_s": 188,
+      "ttft_ms": 93,
+      "failed": 0
+    },
+    {
+      "concurrency": 4,
+      "agg_tok_s": 273,
+      "ttft_ms": 164,
+      "failed": 0
+    },
+    {
+      "concurrency": 8,
+      "agg_tok_s": 275,
+      "ttft_ms": 1073,
+      "failed": 0
+    },
+    {
+      "concurrency": 16,
+      "agg_tok_s": 266,
+      "ttft_ms": 3071,
+      "failed": 0
+    },
+    {
+      "concurrency": 32,
+      "agg_tok_s": 271,
+      "ttft_ms": 6411,
+      "failed": 0
+    }
+  ]
+}
